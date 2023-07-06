@@ -6,11 +6,49 @@ services:
     container_name: zookeeper
     ports:
       - "2181:2181"
+    networks:
+      - springboot-kafka-network
+
   kafka:
     image: wurstmeister/kafka
     container_name: kafka
     ports:
       - "9092:9092"
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: localhost
+#      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ADVERTISED_HOST_NAME: INSIDE://kafka:9092,OUTSIDE://127.0.0.1:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:SASL_PLAINTEXT
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    networks:
+      - springboot-kafka-network
+    depends_on:
+      - zookeeper
+
+
+  producer:
+    image: springboot-kafka/producer
+    container_name: producer
+    ports:
+      - "8081:8081"
+    networks:
+      - springboot-kafka-network
+    depends_on:
+      - kafka
+
+
+  consumer:
+    image: springboot-kafka/consumer
+    container_name: consumer
+    ports:
+      - "8082:8082"
+    networks:
+      - springboot-kafka-network
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_HOST: kafka
+      KAFKA_PORT: 9092
+
+networks:
+  springboot-kafka-network:
+#    driver: bridge
